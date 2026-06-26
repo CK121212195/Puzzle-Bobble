@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>₿ITBOBBLE — Bitcoin Mempool Bubble Shooter</title>
+    <!-- Tailwind CSS Play CDN を使用して美しく構築 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* ネオン調のグロー効果とゲームフォント */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-3 selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- ヘッダー -->
+    <header class="mb-5 text-center">
+        <h1 class="text-4xl font-black tracking-wider bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-md">
+            ₿ITBOBBLE
+        </h1>
+        <p class="text-xs text-slate-400 tracking-widest mt-1 uppercase">Mempool Bubble Shooter</p>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="flex flex-col md:flex-row gap-6 items-stretch justify-center max-w-4xl w-full">
+        
+        <!-- 左サイドバー: ステータスパネル -->
+        <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-2xl p-5 flex md:flex-col justify-between md:justify-start gap-5 md:w-56 shadow-2xl">
+            <div>
+                <div class="text-xs text-slate-400 font-bold tracking-widest uppercase mb-1">SCORE</div>
+                <div id="score-val" class="text-3xl font-black text-amber-500">0000</div>
+            </div>
+            
+            <div>
+                <div class="text-xs text-slate-400 font-bold tracking-widest uppercase mb-1">HIGH SCORE</div>
+                <div id="high-score-val" class="text-2xl font-bold text-slate-300">0000</div>
+            </div>
+            
+            <div class="flex flex-col items-start">
+                <div class="text-xs text-slate-400 font-bold tracking-widest uppercase mb-2">NEXT BLOCK DROP</div>
+                <div class="flex gap-1.5 items-center">
+                    <span id="shots-counter" class="text-xl font-bold text-orange-500 mr-2">6</span>
+                    <div id="shots-dots" class="flex gap-1">
+                        <!-- JSで動的にインジケータードットを生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中央: ゲーム盤面 -->
+        <div class="relative bg-slate-900 border-4 border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-w-full w-[360px] h-[520px] mx-auto neon-glow">
+            <!-- 描画領域 -->
+            <canvas id="game-canvas" width="320" height="480" class="w-full h-full block bg-slate-950"></canvas>
+            
+            <!-- スタート/ゲームオーバー/クリア画面（オーバーレイ） -->
+            <div id="overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 transition-all duration-300">
+                <h2 id="overlay-title" class="text-3xl font-black text-amber-500 mb-2 tracking-wide">₿ITBOBBLE</h2>
+                <p id="overlay-desc" class="text-slate-300 text-sm mb-6 max-w-[240px] leading-relaxed">
+                    新しいブロックが採掘されて詰まる前に、同じ色のトランザクションをつなげてメモリを解放しよう！
+                </p>
+                <button id="start-btn" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-amber-500/20 transform hover:-translate-y-0.5 transition active:translate-y-0 text-sm tracking-wide">
+                    マイニング開始
+                </button>
+            </div>
+        </div>
+
+        <!-- 右サイドバー: 説明パネル -->
+        <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-2xl p-5 flex flex-col justify-center md:w-56 text-xs text-slate-400 space-y-4 shadow-2xl">
+            <div>
+                <h3 class="font-bold text-slate-200 text-sm uppercase mb-2 border-b border-slate-800 pb-1">操作方法</h3>
+                <ul class="space-y-1.5 list-disc pl-3">
+                    <li><span class="text-amber-500 font-bold">← / → キー</span> または <span class="text-amber-500 font-bold">マウス移動</span> で砲台の角度を調整</li>
+                    <li><span class="text-amber-500 font-bold">スペースキー</span> または <span class="text-amber-500 font-bold">左クリック</span> で発射</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-slate-200 text-sm uppercase mb-2 border-b border-slate-800 pb-1">取引手数料クラス</h3>
+                <div class="grid grid-cols-2 gap-2 text-[10px]">
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 block"></span> 100+ sat</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-orange-500 block"></span> 50-99 sat</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-500 block"></span> 20-49 sat</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span> 10-19 sat</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span> 5-9 sat</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 block"></span> 1-4 sat</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- フッター -->
+    <footer class="mt-8 text-center text-[10px] text-slate-600 tracking-wider">
+        Based on "₿びっぷよ" Concept | Built with HTML5 Canvas & Web Audio API
+    </footer>
+
+    <script>
+        // --- サウンド生成（Web Audio API） ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'shoot') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(550, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, now);
+                osc.frequency.exponentialRampToValueAtTime(750, now + 0.08);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'drop') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'block') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(90, now);
+                osc.frequency.linearRampToValueAtTime(30, now + 0.45);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                osc.start(now);
+                osc.stop(now + 0.45);
+            } else if (type === 'win') {
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                const freqs = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+                freqs.forEach((f, idx) => {
+                    osc.frequency.setValueAtTime(f, now + idx * 0.1);
+                });
+                osc.start(now);
+                osc.stop(now + 0.65);
+            } else if (type === 'lose') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.6);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
+        }
+
+        // --- ゲーム定数と設定 ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+
+        const BUBBLE_RADIUS = 20;
+        const ROW_HEIGHT = Math.sqrt(3) * BUBBLE_RADIUS; // ~34.64px
+
+        const NUM_COLS_EVEN = 8;
+        const NUM_COLS_ODD = 7;
+        const NUM_ROWS = 14;
+
+        const LIMIT_Y = CANVAS_HEIGHT - 105; // 警告ライン
+        const LAUNCHER_X = CANVAS_WIDTH / 2;
+        const LAUNCHER_Y = CANVAS_HEIGHT - 35;
+
+        const COLORS_MAP = {
+            'red': '#e11d48',    // 100+ sat/vB
+            'orange': '#ea580c', // 50-99 sat/vB
+            'yellow': '#ca8a04', // 20-49 sat/vB
+            'green': '#16a34a',  // 10-19 sat/vB
+            'blue': '#2563eb',   // 5-9 sat/vB
+            'purple': '#7c3aed'  // 1-4 sat/vB
+        };
+        const COLORS = Object.keys(COLORS_MAP);
+
+        // --- ゲーム状態変数 ---
+        let grid = [];
+        let score = 0;
+        let highScore = localStorage.getItem('bitbobble-high-score') || 0;
+        let shotsLeft = 6;
+        let ceilingOffsetY = 0;
+        let gameActive = false;
+
+        // シューター関係
+        let launcherAngle = -Math.PI / 2;
+        const MIN_ANGLE = -Math.PI + 0.25; // 左限界
+        const MAX_ANGLE = -0.25;           // 右限界
+
+        let currentBubbleColor = null;
+        let nextBubbleColor = null;
+
+        // バブル発射アニメーション
+        let isShooting = false;
+        let px = 0, py = 0;
+        let vx = 0, vy = 0;
+
+        // 落下アニメーション用
+        let fallingBubbles = [];
+
+        // 操作キーの記録
+        const keys = {};
+
+        // --- DOM管理 ---
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayDesc = document.getElementById('overlay-desc');
+        const startBtn = document.getElementById('start-btn');
+        const scoreVal = document.getElementById('score-val');
+        const highScoreVal = document.getElementById('high-score-val');
+        const shotsCounter = document.getElementById('shots-counter');
+        const shotsDots = document.getElementById('shots-dots');
+
+        highScoreVal.textContent = highScore.toString().padStart(4, '0');
+
+        // --- グリッドの座標計算 ---
+        function getBubbleCoords(row, col) {
+            const offsetX = (row % 2 === 0) ? 0 : BUBBLE_RADIUS;
+            const x = col * (BUBBLE_RADIUS * 2) + BUBBLE_RADIUS + offsetX;
+            const y = row * ROW_HEIGHT + BUBBLE_RADIUS + ceilingOffsetY;
+            return { x, y };
+        }
+
+        // 画面上の(x,y)から最も近いグリッドセルを探索
+        function getGridPosition(x, y) {
+            let closestRow = -1;
+            let closestCol = -1;
+            let minDistance = Infinity;
+            
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    const coords = getBubbleCoords(r, c);
+                    const dist = Math.hypot(x - coords.x, y - coords.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestRow = r;
+                        closestCol = c;
+                    }
+                }
+            }
+            return { row: closestRow, col: closestCol, distance: minDistance };
+        }
+
+        // --- 初期化 ---
+        function initGrid() {
+            grid = [];
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                const row = [];
+                for (let c = 0; c < cols; c++) {
+                    if (r < 5) { // 最初は5行埋める
+                        row.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+                    } else {
+                        row.push(null);
+                    }
+                }
+                grid.push(row);
+            }
+            ceilingOffsetY = 0;
+            shotsLeft = 6;
+            score = 0;
+            fallingBubbles = [];
+            currentBubbleColor = null;
+            nextBubbleColor = null;
+            gameActive = true;
+            prepareNextBubble();
+            updateHUD();
+        }
+
+        // 盤面にある色のみを弾に設定（攻略難易度の緩和・詰み防止）
+        function getColorsOnBoard() {
+            const colors = new Set();
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] !== null) {
+                        colors.add(grid[r][c]);
+                    }
+                }
+            }
+            return Array.from(colors);
+        }
+
+        function prepareNextBubble() {
+            const colors = getColorsOnBoard();
+            if (colors.length === 0) {
+                triggerVictory();
+                return;
+            }
+            if (!currentBubbleColor) {
+                currentBubbleColor = colors[Math.floor(Math.random() * colors.length)];
+            } else {
+                currentBubbleColor = nextBubbleColor;
+            }
+            nextBubbleColor = colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // --- HUD描画の更新 ---
+        function updateHUD() {
+            scoreVal.textContent = score.toString().padStart(4, '0');
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('bitbobble-high-score', highScore);
+                highScoreVal.textContent = highScore.toString().padStart(4, '0');
+            }
+            
+            shotsCounter.textContent = shotsLeft;
+            
+            // バッテリーのような丸型インジケーターを生成
+            shotsDots.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const dot = document.createElement('div');
+                dot.className = `w-2.5 h-2.5 rounded-full border transition-all duration-300 ${
+                    i < shotsLeft 
+                        ? 'bg-orange-500 border-orange-400 shadow shadow-orange-500/50' 
+                        : 'bg-slate-800 border-slate-700'
+                }`;
+                shotsDots.appendChild(dot);
+            }
+        }
+
+        // --- 隣接取得 (Hexagonal Neighbors) ---
+        function getNeighbors(r, c) {
+            const neighbors = [];
+            // 左右
+            neighbors.push({ r: r, c: c - 1 });
+            neighbors.push({ r: r, c: c + 1 });
+            
+            if (r % 2 === 0) {
+                // 偶数行: 隣接はc-1とc (上下行)
+                neighbors.push({ r: r - 1, c: c - 1 });
+                neighbors.push({ r: r - 1, c: c });
+                neighbors.push({ r: r + 1, c: c - 1 });
+                neighbors.push({ r: r + 1, c: c });
+            } else {
+                // 奇数行: 隣接はcとc+1 (上下行)
+                neighbors.push({ r: r - 1, c: c });
+                neighbors.push({ r: r - 1, c: c + 1 });
+                neighbors.push({ r: r + 1, c: c });
+                neighbors.push({ r: r + 1, c: c + 1 });
+            }
+            
+            return neighbors.filter(pos => {
+                if (pos.r < 0 || pos.r >= NUM_ROWS) return false;
+                const cols = (pos.r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                return pos.c >= 0 && pos.c < cols;
+            });
+        }
+
+        // --- バブル衝突と吸着 ---
+        function checkCollision() {
+            if (py - BUBBLE_RADIUS <= ceilingOffsetY) {
+                return true;
+            }
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] !== null) {
+                        const coords = getBubbleCoords(r, c);
+                        const dist = Math.hypot(px - coords.x, py - coords.y);
+                        // すこし重なるように設定(自然な吸着のため)
+                        if (dist <= BUBBLE_RADIUS * 1.85) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function snapBubble() {
+            const { row, col } = getGridPosition(px, py);
+            let targetRow = row;
+            let targetCol = col;
+            
+            // 既にセルにバブルが存在する場合は、その周囲の最も近い空きセルを探す
+            if (grid[row][col] !== null) {
+                let minEmptyDist = Infinity;
+                for (let r = 0; r < NUM_ROWS; r++) {
+                    const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                    for (let c = 0; c < cols; c++) {
+                        if (grid[r][c] === null) {
+                            const coords = getBubbleCoords(r, c);
+                            const dist = Math.hypot(px - coords.x, py - coords.y);
+                            if (dist < minEmptyDist) {
+                                minEmptyDist = dist;
+                                targetRow = r;
+                                targetCol = c;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            grid[targetRow][targetCol] = currentBubbleColor;
+            return { row: targetRow, col: targetCol };
+        }
+
+        // --- DFS/BFSで同色マッチと浮遊バブル処理 ---
+        function findMatch(startRow, startCol, color) {
+            const matches = [];
+            const queue = [{ r: startRow, c: startCol }];
+            const visited = Array.from({ length: NUM_ROWS }, (_, r) => {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                return new Array(cols).fill(false);
+            });
+            
+            visited[startRow][startCol] = true;
+            
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                matches.push(curr);
+                
+                const neighbors = getNeighbors(curr.r, curr.c);
+                for (const n of neighbors) {
+                    if (!visited[n.r][n.c] && grid[n.r][n.c] === color) {
+                        visited[n.r][n.c] = true;
+                        queue.push(n);
+                    }
+                }
+            }
+            return matches;
+        }
+
+        function dropFloatingBubbles() {
+            const visited = Array.from({ length: NUM_ROWS }, (_, r) => {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                return new Array(cols).fill(false);
+            });
+            const queue = [];
+            
+            // 天井（row=0）にある生きたバブルから探索を開始
+            for (let c = 0; c < NUM_COLS_EVEN; c++) {
+                if (grid[0][c] !== null) {
+                    visited[0][c] = true;
+                    queue.push({ r: 0, c: c });
+                }
+            }
+            
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                const neighbors = getNeighbors(curr.r, curr.c);
+                for (const n of neighbors) {
+                    if (!visited[n.r][n.c] && grid[n.r][n.c] !== null) {
+                        visited[n.r][n.c] = true;
+                        queue.push(n);
+                    }
+                }
+            }
+            
+            // 探索で到達できなかったバブルを切り離す
+            const dropped = [];
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] !== null && !visited[r][c]) {
+                        dropped.push({ r, c, color: grid[r][c] });
+                        grid[r][c] = null;
+                    }
+                }
+            }
+            return dropped;
+        }
+
+        // --- ゲームオーバチェック ---
+        function checkGameOver() {
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] !== null) {
+                        const coords = getBubbleCoords(r, c);
+                        if (coords.y + BUBBLE_RADIUS >= LIMIT_Y) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function triggerGameOver() {
+            playSound('lose');
+            gameActive = false;
+            showOverlay('GAME OVER', `mempool（未承認取引）が溢れました！\n最終スコア: ${score}`, '再開する');
+        }
+
+        function triggerVictory() {
+            playSound('win');
+            gameActive = false;
+            showOverlay('VICTORY!', `すべてのトランザクションがマイニングされました！\n最終スコア: ${score}`, 'もう一度挑戦');
+        }
+
+        // --- バブル発射処理 ---
+        function fireBubble() {
+            if (isShooting || !gameActive) return;
+            playSound('shoot');
+            isShooting = true;
+            px = LAUNCHER_X;
+            py = LAUNCHER_Y;
+            vx = Math.cos(launcherAngle);
+            vy = Math.sin(launcherAngle);
+        }
+
+        // --- アップデート処理（物理・更新） ---
+        function update() {
+            if (!gameActive) return;
+
+            // 1. 落下バブルのアニメーション更新
+            for (let i = fallingBubbles.length - 1; i >= 0; i--) {
+                const fb = fallingBubbles[i];
+                fb.y += fb.vy;
+                fb.vy += 0.35; // 重力
+                if (fb.y > CANVAS_HEIGHT + BUBBLE_RADIUS) {
+                    fallingBubbles.splice(i, 1);
+                }
+            }
+
+            // 2. キーボード操作による照準回転
+            const rotSpeed = 0.035;
+            if (keys['ArrowLeft'] || keys['Left']) {
+                launcherAngle -= rotSpeed;
+                if (launcherAngle < MIN_ANGLE) launcherAngle = MIN_ANGLE;
+            }
+            if (keys['ArrowRight'] || keys['Right']) {
+                launcherAngle += rotSpeed;
+                if (launcherAngle > MAX_ANGLE) launcherAngle = MAX_ANGLE;
+            }
+
+            // 3. 発射中バブルの移動更新
+            if (isShooting) {
+                const speed = 12;
+                const subSteps = 4; // 壁抜け・すり抜け防止のサブステップ
+                let collided = false;
+                let snappedCell = null;
+                
+                for (let s = 0; s < subSteps; s++) {
+                    px += (vx * speed) / subSteps;
+                    py += (vy * speed) / subSteps;
+                    
+                    // 左右の壁バウンド
+                    if (px - BUBBLE_RADIUS < 0) {
+                        px = BUBBLE_RADIUS;
+                        vx = -vx;
+                    } else if (px + BUBBLE_RADIUS > CANVAS_WIDTH) {
+                        px = CANVAS_WIDTH - BUBBLE_RADIUS;
+                        vx = -vx;
+                    }
+                    
+                    if (checkCollision()) {
+                        collided = true;
+                        snappedCell = snapBubble();
+                        break;
+                    }
+                }
+                
+                if (collided) {
+                    isShooting = false;
+                    const { row, col } = snappedCell;
+                    const matches = findMatch(row, col, currentBubbleColor);
+                    
+                    if (matches.length >= 3) {
+                        playSound('pop');
+                        matches.forEach(m => {
+                            grid[m.r][m.c] = null;
+                            score += 10;
+                        });
+                        
+                        // 切り離された浮遊バブルの検出と落下
+                        const dropped = dropFloatingBubbles();
+                        if (dropped.length > 0) {
+                            playSound('drop');
+                            dropped.forEach(item => {
+                                const coords = getBubbleCoords(item.r, item.c);
+                                fallingBubbles.push({
+                                    x: coords.x,
+                                    y: coords.y,
+                                    vy: 1.5,
+                                    color: item.color
+                                });
+                                score += 20; // 落下の方が高配点
+                            });
+                        }
+                    }
+
+                    // ブロック採掘カウンターデクリメント
+                    shotsLeft--;
+                    if (shotsLeft <= 0) {
+                        playSound('block');
+                        ceilingOffsetY += ROW_HEIGHT;
+                        shotsLeft = 6;
+                    }
+
+                    updateHUD();
+
+                    if (checkGameOver()) {
+                        triggerGameOver();
+                        return;
+                    }
+
+                    prepareNextBubble();
+                }
+            }
+        }
+
+        // --- 描画処理 ---
+        function drawBubble(x, y, colorCode) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, BUBBLE_RADIUS, 0, Math.PI * 2);
+
+            // 3D球体に見せるグラデーション
+            const hexColor = COLORS_MAP[colorCode] || '#475569';
+            const gradient = ctx.createRadialGradient(
+                x - BUBBLE_RADIUS * 0.3, 
+                y - BUBBLE_RADIUS * 0.3, 
+                BUBBLE_RADIUS * 0.1, 
+                x, y, BUBBLE_RADIUS
+            );
+            
+            // 明暗の設定
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.2, hexColor);
+            gradient.addColorStop(1, '#000000');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // 光沢のハイライトを描画
+            ctx.beginPath();
+            ctx.arc(x - BUBBLE_RADIUS * 0.35, y - BUBBLE_RADIUS * 0.35, BUBBLE_RADIUS * 0.22, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.fill();
+
+            // 薄い輪郭線
+            ctx.beginPath();
+            ctx.arc(x, y, BUBBLE_RADIUS, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawAimingLine() {
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([4, 6]);
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)'; // 照準線の色
+            ctx.lineWidth = 2;
+            
+            // 照準線
+            const length = 200;
+            const endX = LAUNCHER_X + Math.cos(launcherAngle) * length;
+            const endY = LAUNCHER_Y + Math.sin(launcherAngle) * length;
+            
+            ctx.moveTo(LAUNCHER_X, LAUNCHER_Y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function draw() {
+            // 背景クリアとグリッド描画
+            ctx.fillStyle = '#020617'; // 超ダークブルー
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 背景の電子回路的な微細格子
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1;
+            const size = 20;
+            for (let x = 0; x < CANVAS_WIDTH; x += size) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke();
+            }
+            for (let y = 0; y < CANVAS_HEIGHT; y += size) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke();
+            }
+
+            // デッドライン警告線の描画
+            ctx.beginPath();
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.65)';
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(0, LIMIT_Y);
+            ctx.lineTo(CANVAS_WIDTH, LIMIT_Y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+            ctx.font = 'bold 9px monospace';
+            ctx.fillText('BLOCK LIMIT LINE', 10, LIMIT_Y - 5);
+
+            // 天井の描画
+            if (ceilingOffsetY > 0) {
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.8)';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, ceilingOffsetY);
+                ctx.beginPath();
+                ctx.moveTo(0, ceilingOffsetY);
+                ctx.lineTo(CANVAS_WIDTH, ceilingOffsetY);
+                ctx.strokeStyle = '#ea580c';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+
+            // 照準ガイド線
+            if (!isShooting && gameActive) {
+                drawAimingLine();
+            }
+
+            // 静止しているバブルの描画
+            for (let r = 0; r < NUM_ROWS; r++) {
+                const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c] !== null) {
+                        const coords = getBubbleCoords(r, c);
+                        drawBubble(coords.x, coords.y, grid[r][c]);
+                    }
+                }
+            }
+
+            // 落下アニメーションバブル
+            fallingBubbles.forEach(fb => {
+                drawBubble(fb.x, fb.y, fb.color);
+            });
+
+            // 射出中のバブル
+            if (isShooting) {
+                drawBubble(px, py, currentBubbleColor);
+            }
+
+            // 砲台ベース
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(LAUNCHER_X, LAUNCHER_Y, 22, 0, Math.PI, true);
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            // 矢印（銃身）
+            ctx.save();
+            ctx.translate(LAUNCHER_X, LAUNCHER_Y);
+            ctx.rotate(launcherAngle);
+            ctx.beginPath();
+            ctx.moveTo(-5, 0);
+            ctx.lineTo(-4, -25);
+            ctx.lineTo(-9, -25);
+            ctx.lineTo(0, -38); // 先端矢印
+            ctx.lineTo(9, -25);
+            ctx.lineTo(4, -25);
+            ctx.lineTo(5, 0);
+            ctx.closePath();
+            const launcherGrad = ctx.createLinearGradient(-5, 0, 5, -38);
+            launcherGrad.addColorStop(0, '#f59e0b');
+            launcherGrad.addColorStop(1, '#ea580c');
+            ctx.fillStyle = launcherGrad;
+            ctx.fill();
+            ctx.restore();
+
+            // 次の弾インジケータ
+            if (currentBubbleColor && gameActive) {
+                drawBubble(LAUNCHER_X, LAUNCHER_Y, currentBubbleColor);
+            }
+            if (nextBubbleColor && gameActive) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('NEXT', LAUNCHER_X - 60, LAUNCHER_Y + 15);
+                drawBubble(LAUNCHER_X - 60, LAUNCHER_Y - 5, nextBubbleColor);
+            }
+        }
+
+        // --- ループ処理 ---
+        function gameLoop() {
+            update();
+            draw();
+            if (gameActive) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // --- オーバーレイ画面切り替え ---
+        function showOverlay(title, desc, btnText) {
+            overlayTitle.textContent = title;
+            overlayDesc.innerHTML = desc.replace(/\n/g, '<br>');
+            startBtn.textContent = btnText;
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        }
+
+        function hideOverlay() {
+            overlay.classList.remove('flex');
+            overlay.classList.add('hidden');
+        }
+
+        // --- イベントリスナー（キーボード＆マウス） ---
+        startBtn.addEventListener('click', () => {
+            hideOverlay();
+            initGrid();
+            requestAnimationFrame(gameLoop);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault(); // スペース押下によるスクロール防止
+                fireBubble();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // マウス移動・クリックでの操作対応
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameActive) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            
+            const angle = Math.atan2(my - LAUNCHER_Y, mx - LAUNCHER_X);
+            if (angle >= MIN_ANGLE && angle <= MAX_ANGLE) {
+                launcherAngle = angle;
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameActive) {
+                fireBubble();
+            }
+        });
+
+        // タッチパネル操作対応
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameActive) return;
+            e.preventDefault(); // 標準のスクロールを防止
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (touch.clientX - rect.left) * scaleX;
+            const my = (touch.clientY - rect.top) * scaleY;
+            
+            const angle = Math.atan2(my - LAUNCHER_Y, mx - LAUNCHER_X);
+            if (angle >= MIN_ANGLE && angle <= MAX_ANGLE) {
+                launcherAngle = angle;
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            e.preventDefault();
+            fireBubble();
+        }, { passive: false });
+    </script>
+</body>
+</html>
