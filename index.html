@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,7 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        /* 美しいネオングロー効果 */
+        /* Beautiful neon glow effect */
         .arcade-glow {
             box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
         }
@@ -19,18 +19,32 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-center p-3 selection:bg-blue-500 selection:text-white">
 
-    <!-- 全体コンテナ -->
+    <!-- Top Utility Bar / Header -->
+    <header class="mb-5 flex items-center justify-between w-full max-w-4xl px-2">
+        <div>
+            <h1 id="header-title" class="text-3xl font-black tracking-wider bg-gradient-to-r from-blue-500 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
+                PUZZLE BOBBLE
+            </h1>
+            <p id="subtitle-text" class="text-[10px] text-slate-500 tracking-widest uppercase">Classic Bubble Shooter</p>
+        </div>
+        <!-- Language Switch Button -->
+        <button id="lang-toggle-btn" class="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
+            🌐 日本語
+        </button>
+    </header>
+
+    <!-- Main Container -->
     <div class="flex flex-col md:flex-row gap-6 items-stretch justify-center max-w-4xl w-full">
         
-        <!-- 左側：ステータス・スコア -->
+        <!-- Left Sidebar: Score & Level Stats -->
         <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-2xl p-5 flex md:flex-col justify-between md:justify-start gap-4 md:w-52 shadow-2xl">
             <div class="flex md:flex-col justify-between w-full">
                 <div>
-                    <div class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">Score</div>
+                    <div id="score-label" class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">Score</div>
                     <div id="score-val" class="text-3xl font-black text-blue-400">0000</div>
                 </div>
                 <div class="mt-0 md:mt-4">
-                    <div class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">High Score</div>
+                    <div id="high-score-label" class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">High Score</div>
                     <div id="high-score-val" class="text-2xl font-bold text-slate-300">0000</div>
                 </div>
             </div>
@@ -39,35 +53,42 @@
             
             <div class="flex md:flex-col justify-between w-full items-center md:items-start">
                 <div>
-                    <div class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">Level</div>
+                    <div id="level-label" class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1">Level</div>
                     <div id="level-val" class="text-2xl font-extrabold text-emerald-400">1</div>
                 </div>
                 <div class="mt-0 md:mt-4 flex flex-col items-start">
-                    <div class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1.5">Ceiling Drop</div>
+                    <div id="ceiling-drop-label" class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mb-1.5">Ceiling Drop</div>
                     <div class="flex gap-1 items-center">
                         <span id="shots-counter" class="text-lg font-bold text-orange-500 mr-2">6</span>
                         <div id="shots-dots" class="flex gap-1">
-                            <!-- ドットインジケーター -->
+                            <!-- JS will generate status dots dynamically -->
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 音量・機能ボタン -->
-            <button id="mute-btn" class="mt-auto hidden md:flex items-center gap-2 text-xs text-slate-400 hover:text-slate-100 bg-slate-800/50 hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-700/50 transition">
-                <span id="mute-icon">🔊</span> <span id="mute-text">Sound ON</span>
-            </button>
+            <div class="border-t border-slate-800/80 my-1 hidden md:block"></div>
+
+            <!-- Sound & Donation buttons for Desktop Layout -->
+            <div class="hidden md:flex flex-col gap-2 w-full mt-auto">
+                <button id="mute-btn" class="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-100 bg-slate-800/40 hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-800 transition">
+                    <span id="mute-icon">🔊</span> <span id="mute-text">Sound ON</span>
+                </button>
+                <button id="support-btn" class="flex items-center gap-2 text-xs text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-2 rounded-xl border border-amber-500/30 transition font-bold">
+                    <span>₿</span> <span>Support</span>
+                </button>
+            </div>
         </div>
 
-        <!-- 中央：ゲームエリア -->
+        <!-- Center Game Viewport -->
         <div class="relative bg-slate-900 border-4 border-slate-800 rounded-2xl shadow-2xl overflow-hidden max-w-full w-[360px] h-[520px] mx-auto arcade-glow">
             <canvas id="game-canvas" width="320" height="480" class="w-full h-full block bg-slate-950"></canvas>
             
-            <!-- ゲーム開始・終了時のオーバーレイ画面 -->
-            <div id="overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 transition-all duration-300">
+            <!-- Game Overlays (Start / Stage Clear / Game Over) -->
+            <div id="overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 transition-all duration-300 z-40">
                 <h2 id="overlay-title" class="text-3xl font-black text-blue-500 mb-2 tracking-wide">PUZZLE BOBBLE</h2>
                 <p id="overlay-desc" class="text-slate-400 text-xs mb-6 max-w-[240px] leading-relaxed">
-                    同じ色のバブルを3つ以上つなげて消していこう！天井が押し下がる前に全消しを狙ってください。
+                    Match 3 or more bubbles of the same color! Clear the board before the ceiling drops.
                 </p>
                 <div class="flex flex-col gap-2 w-full max-w-[200px]">
                     <button id="start-btn" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-extrabold rounded-xl shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 transition active:translate-y-0 text-xs tracking-wide">
@@ -78,33 +99,146 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Bitcoin Donation Modal Overlay -->
+            <div id="donation-modal" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 transition-all duration-300 z-50">
+                <div class="text-amber-500 text-4xl mb-1.5 font-black">₿</div>
+                <h3 id="donate-title" class="text-lg font-bold text-slate-100 mb-2">Donate via Bitcoin</h3>
+                <p id="donate-desc" class="text-slate-400 text-[11px] mb-4 max-w-[230px] leading-relaxed">
+                    If you enjoy this game, consider sending a small tip to support development! Any amount is highly appreciated.
+                </p>
+                
+                <!-- Dynamic QR Code (QRServer API) -->
+                <div class="bg-white p-1.5 rounded-xl mb-4 shadow-lg shadow-amber-500/5">
+                    <img id="btc-qr" src="" alt="Bitcoin Address QR" class="w-32 h-32">
+                </div>
+                
+                <!-- Address Copy Panel -->
+                <div class="w-full max-w-[250px] bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between mb-4">
+                    <span id="btc-address-disp" class="text-[10px] text-slate-400 truncate w-[150px] text-left font-mono"></span>
+                    <button id="copy-btc-btn" class="text-[10px] bg-amber-500 hover:bg-amber-400 text-slate-950 px-2 py-1 rounded-lg font-bold transition">
+                        Copy Address
+                    </button>
+                </div>
+                
+                <button id="close-donation-btn" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 font-bold text-xs transition">
+                    Close
+                </button>
+            </div>
         </div>
 
-        <!-- 右側：ヘルプ・コントロール -->
+        <!-- Right Sidebar: Guide Instructions -->
         <div class="bg-slate-900/60 backdrop-blur border border-slate-800 rounded-2xl p-5 flex flex-col justify-between md:w-52 text-xs text-slate-400 space-y-4 shadow-2xl">
             <div>
-                <h3 class="font-bold text-slate-200 text-xs uppercase mb-2 border-b border-slate-800 pb-1.5">遊び方</h3>
-                <ul class="space-y-1.5 list-disc pl-3 text-[11px]">
-                    <li><span class="text-blue-400 font-bold">← / →</span> または <span class="text-blue-400 font-bold">マウス移動</span> で砲台を回転</li>
-                    <li><span class="text-blue-400 font-bold">スペース</span> または <span class="text-blue-400 font-bold">クリック</span> で発射</li>
-                    <li>同じ色を<span class="text-emerald-400 font-bold">3個以上</span>つなげて消去！</li>
-                    <li>支えを失ったバブルは下に落ちてボーナスポイントになります。</li>
+                <h3 id="how-to-play-title" class="font-bold text-slate-200 text-xs uppercase mb-2 border-b border-slate-800 pb-1.5">How to Play</h3>
+                <ul id="instructions-list" class="space-y-1.5 list-disc pl-3 text-[11px]">
+                    <!-- Population dynamically on language swap -->
                 </ul>
             </div>
             
-            <div class="text-[10px] text-slate-500 leading-relaxed pt-2 border-t border-slate-800/80">
-                画面端にバブルを当てると、ガイドラインに沿って綺麗に反射します。隙間を狙うショットに挑戦しましょう。
+            <div id="tip-text" class="text-[10px] text-slate-500 leading-relaxed pt-2 border-t border-slate-800/80">
+                Bubbles bounce cleanly off walls. Try tricky bank shots!
             </div>
         </div>
     </div>
 
-    <!-- モバイル用消音ボタン（下部に表示） -->
-    <button id="mute-btn-mobile" class="mt-4 md:hidden flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
-        🔊 Sound ON
-    </button>
+    <!-- Mobile Screen Quick Utility Buttons -->
+    <div class="flex gap-2.5 mt-4 md:hidden">
+        <button id="mute-btn-mobile" class="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 px-3 py-2 rounded-xl border border-slate-800">
+            🔊 Sound ON
+        </button>
+        <button id="support-btn-mobile" class="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20 font-bold">
+            <span>₿</span> <span>Support</span>
+        </button>
+    </div>
+
+    <!-- Page Footer -->
+    <footer class="mt-8 text-center text-[10px] text-slate-600 tracking-wider">
+        Classic Layout | Zero Tracker, Pure Web Audio & Local Storage
+    </footer>
 
     <script>
-        // --- サウンド生成（Web Audio API） ---
+        // --- ₿ITCOIN DONATION CONFIGURATION ---
+        // REPLACE WITH YOUR ACTUAL BTC WALLET ADDRESS FOR DONATIONS! [1]
+        const btcAddress = "bc1qyd98g7r2xclqscqj82lny7896skmvpxg4f7qq6"; 
+        
+        document.getElementById('btc-address-disp').textContent = btcAddress;
+        document.getElementById('btc-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bitcoin:${btcAddress}`; //
+
+        // --- I18N DICTIONARY (Default: English) ---
+        const TRANSLATIONS = {
+            en: {
+                title: "PUZZLE BOBBLE",
+                subtitle: "Classic Bubble Shooter",
+                score: "Score",
+                highScore: "High Score",
+                level: "Level",
+                ceilingDrop: "Ceiling Drop",
+                soundOn: "Sound ON",
+                soundOff: "Sound OFF",
+                howToPlay: "How to Play",
+                instructions: [
+                    "Rotate shooter with ← / → or mouse",
+                    "Shoot with Space or Left Click",
+                    "Match 3+ of the same color to pop!",
+                    "Floating bubbles fall for bonus points!"
+                ],
+                tip: "Bubbles bounce cleanly off walls. Try tricky bank shots!",
+                gameStart: "GAME START",
+                retry: "RETRY",
+                nextStage: "NEXT STAGE",
+                share: "𝕏 Share Score",
+                support: "₿ Support",
+                donateTitle: "Donate via Bitcoin",
+                donateDesc: "If you enjoy this game, consider sending a small tip to support development! Any amount is highly appreciated.",
+                copyBtn: "Copy Address",
+                copied: "Copied!",
+                close: "Close",
+                startDesc: "Match 3 or more bubbles of the same color! Clear the board before the ceiling drops.",
+                gameOverTitle: "GAME OVER",
+                gameOverDesc: "The bubbles crossed the limit line!\nFinal Level: {level}\nFinal Score: {score}",
+                stageClearTitle: "STAGE CLEAR!",
+                stageClearDesc: "Level {level} cleared!\nReady for the next level?"
+            },
+            jp: {
+                title: "パズルボブル",
+                subtitle: "クラシックバブルシューター",
+                score: "スコア",
+                highScore: "ハイスコア",
+                level: "レベル",
+                ceilingDrop: "天井降下",
+                soundOn: "音量 ON",
+                soundOff: "音量 OFF",
+                howToPlay: "遊び方",
+                instructions: [
+                    "← / → またはマウス移動で砲台を回転",
+                    "スペースまたはクリックで発射",
+                    "同じ色を3個以上つなげて消去！",
+                    "支えを失ったバブルは落下してボーナス！"
+                ],
+                tip: "画面端にバブルを当てると反射します。隙間を狙うショットに挑戦しよう。",
+                gameStart: "ゲームスタート",
+                retry: "リトライ",
+                nextStage: "次のステージ",
+                share: "𝕏 スコアをシェア",
+                support: "₿ 開発支援",
+                donateTitle: "Bitcoinで寄付",
+                donateDesc: "このゲームを気に入っていただけましたら、開発支援のために少額の寄付（サトシ）をご検討いただけますと幸いです！",
+                copyBtn: "アドレスをコピー",
+                copied: "コピー成功！",
+                close: "閉じる",
+                startDesc: "同じ色のバブルを3つ以上つなげて消していこう！天井が押し下がる前に全消しを狙ってください。",
+                gameOverTitle: "ゲームオーバー",
+                gameOverDesc: "ラインを越えてしまいました！\n到達レベル: {level}\n最終スコア: {score}",
+                stageClearTitle: "ステージクリア！",
+                stageClearDesc: "レベル {level} をクリアしました！\n次のレベルに挑戦しましょう。"
+            }
+        };
+
+        let currentLang = localStorage.getItem('puzzle-bobble-lang') || 'en';
+        let overlayState = 'start'; // 'start', 'gameover', 'clear'
+
+        // --- Sound Generation (Web Audio API) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let isMuted = localStorage.getItem('puzzle-bobble-muted') === 'true';
 
@@ -151,7 +285,7 @@
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0.15, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                const notes = [261.63, 329.63, 392.00, 523.25]; // C E G C
+                const notes = [261.63, 329.63, 392.00, 523.25];
                 notes.forEach((f, i) => {
                     osc.frequency.setValueAtTime(f, now + i * 0.08);
                 });
@@ -166,17 +300,18 @@
             }
         }
 
-        // --- ミュート管理 ---
+        // --- Sound Control & UI ---
         const muteBtn = document.getElementById('mute-btn');
         const muteBtnMobile = document.getElementById('mute-btn-mobile');
         const muteIcon = document.getElementById('mute-icon');
         const muteText = document.getElementById('mute-text');
 
         function updateMuteUI() {
-            const label = isMuted ? '🔇 Sound OFF' : '🔊 Sound ON';
+            const t = TRANSLATIONS[currentLang];
+            const label = isMuted ? `🔇 ${t.soundOff}` : `🔊 ${t.soundOn}`;
             if (muteIcon && muteText) {
                 muteIcon.textContent = isMuted ? '🔇' : '🔊';
-                muteText.textContent = isMuted ? 'Sound OFF' : 'Sound ON';
+                muteText.textContent = isMuted ? t.soundOff : t.soundOn;
             }
             muteBtnMobile.textContent = label;
             localStorage.setItem('puzzle-bobble-muted', isMuted);
@@ -189,16 +324,96 @@
                 if (audioCtx.state === 'suspended') audioCtx.resume();
             });
         });
-        updateMuteUI();
 
-        // --- 基本設定とゲーム定数 ---
+        // --- Language Application Logic ---
+        const langToggleBtn = document.getElementById('lang-toggle-btn');
+        const subtitleText = document.getElementById('subtitle-text');
+
+        function applyLanguage() {
+            const t = TRANSLATIONS[currentLang];
+            
+            // Text values
+            subtitleText.textContent = t.subtitle;
+            document.getElementById('score-label').textContent = t.score;
+            document.getElementById('high-score-label').textContent = t.highScore;
+            document.getElementById('level-label').textContent = t.level;
+            document.getElementById('ceiling-drop-label').textContent = t.ceilingDrop;
+            document.getElementById('how-to-play-title').textContent = t.howToPlay;
+            document.getElementById('tip-text').textContent = t.tip;
+            
+            // List of instructions
+            const instList = document.getElementById('instructions-list');
+            instList.innerHTML = '';
+            t.instructions.forEach(inst => {
+                const li = document.createElement('li');
+                li.textContent = inst;
+                instList.appendChild(li);
+            });
+
+            // Donation modal labels
+            document.getElementById('donate-title').textContent = t.donateTitle;
+            document.getElementById('donate-desc').textContent = t.donateDesc;
+            document.getElementById('copy-btc-btn').textContent = t.copyBtn;
+            document.getElementById('close-donation-btn').textContent = t.close;
+
+            // Buttons
+            document.getElementById('support-btn').querySelector('span:last-child').textContent = t.support.substring(2);
+            document.getElementById('support-btn-mobile').querySelector('span:last-child').textContent = t.support.substring(2);
+            langToggleBtn.textContent = `🌐 ${currentLang === 'en' ? '日本語' : 'English'}`;
+
+            updateMuteUI();
+            updateOverlayText();
+        }
+
+        langToggleBtn.addEventListener('click', () => {
+            currentLang = currentLang === 'en' ? 'jp' : 'en';
+            localStorage.setItem('puzzle-bobble-lang', currentLang);
+            applyLanguage();
+        });
+
+        // --- Bitcoin Donation Modal Logic ---
+        const donationModal = document.getElementById('donation-modal');
+        const supportBtn = document.getElementById('support-btn');
+        const supportBtnMobile = document.getElementById('support-btn-mobile');
+        const closeDonationBtn = document.getElementById('close-donation-btn');
+        const copyBtcBtn = document.getElementById('copy-btc-btn');
+
+        function openDonationModal() {
+            donationModal.classList.remove('hidden');
+            donationModal.classList.add('flex');
+        }
+
+        function closeDonationModal() {
+            donationModal.classList.remove('flex');
+            donationModal.classList.add('hidden');
+        }
+
+        supportBtn.addEventListener('click', openDonationModal);
+        supportBtnMobile.addEventListener('click', openDonationModal);
+        closeDonationBtn.addEventListener('click', closeDonationModal);
+
+        copyBtcBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(btcAddress).then(() => {
+                const prevText = copyBtcBtn.textContent;
+                copyBtcBtn.textContent = TRANSLATIONS[currentLang].copied;
+                copyBtcBtn.classList.remove('bg-amber-500', 'text-slate-950');
+                copyBtcBtn.classList.add('bg-emerald-500', 'text-white');
+                setTimeout(() => {
+                    copyBtcBtn.textContent = TRANSLATIONS[currentLang].copyBtn;
+                    copyBtcBtn.classList.add('bg-amber-500', 'text-slate-950');
+                    copyBtcBtn.classList.remove('bg-emerald-500', 'text-white');
+                }, 1500);
+            });
+        });
+
+        // --- Game Constants & Board Layout ---
         const canvas = document.getElementById('game-canvas');
         const ctx = canvas.getContext('2d');
         const CANVAS_WIDTH = canvas.width;
         const CANVAS_HEIGHT = canvas.height;
 
         const BUBBLE_RADIUS = 18;
-        const ROW_HEIGHT = Math.sqrt(3) * BUBBLE_RADIUS; // 31.17px
+        const ROW_HEIGHT = Math.sqrt(3) * BUBBLE_RADIUS; // ~31.17px
 
         const NUM_COLS_EVEN = 8;
         const NUM_COLS_ODD = 7;
@@ -209,16 +424,16 @@
         const LAUNCHER_Y = CANVAS_HEIGHT - 35;
 
         const COLORS_MAP = {
-            'red': '#ef4444',    // Rose
-            'blue': '#3b82f6',   // Blue
-            'green': '#10b981',  // Emerald
-            'yellow': '#f59e0b', // Amber
-            'purple': '#8b5cf6', // Violet
-            'orange': '#f97316'  // Orange
+            'red': '#ef4444',
+            'blue': '#3b82f6',
+            'green': '#10b981',
+            'yellow': '#f59e0b',
+            'purple': '#8b5cf6',
+            'orange': '#f97316'
         };
         const COLORS = Object.keys(COLORS_MAP);
 
-        // --- ゲームステート ---
+        // --- Game Variables ---
         let grid = [];
         let score = 0;
         let highScore = localStorage.getItem('puzzle-bobble-high-score') || 0;
@@ -234,18 +449,14 @@
         let currentBubbleColor = null;
         let nextBubbleColor = null;
 
-        // 打ち出したバブル物理
         let isShooting = false;
         let px = 0, py = 0;
         let vx = 0, vy = 0;
 
-        // エフェクト演出配列
         let fallingBubbles = [];
         let particles = [];
-
         const keys = {};
 
-        // --- DOMのバインド ---
         const overlay = document.getElementById('overlay');
         const overlayTitle = document.getElementById('overlay-title');
         const overlayDesc = document.getElementById('overlay-desc');
@@ -259,7 +470,6 @@
 
         highScoreVal.textContent = highScore.toString().padStart(4, '0');
 
-        // --- ヘルパー: 座標計算 ---
         function getBubbleCoords(row, col) {
             const offsetX = (row % 2 === 0) ? 0 : BUBBLE_RADIUS;
             const x = col * (BUBBLE_RADIUS * 2) + BUBBLE_RADIUS + offsetX;
@@ -291,7 +501,6 @@
             });
         }
 
-        // --- 破裂時の火花エフェクト生成 ---
         function createParticles(x, y, color) {
             const count = 10;
             const hexColor = COLORS_MAP[color] || '#ffffff';
@@ -311,10 +520,8 @@
             }
         }
 
-        // --- グリッド初期配置生成 ---
         function generateGrid(level) {
             grid = [];
-            // レベルが高いほど初期行数を増やす (上限7行)
             const fillRows = Math.min(4 + level, 7);
             
             for (let r = 0; r < NUM_ROWS; r++) {
@@ -379,7 +586,6 @@
             
             shotsCounter.textContent = shotsLeft;
             
-            // バッテリーのような丸型ドットインジケーター生成
             shotsDots.innerHTML = '';
             for (let i = 0; i < 6; i++) {
                 const dot = document.createElement('div');
@@ -392,7 +598,6 @@
             }
         }
 
-        // --- 衝突と吸着判定 ---
         function checkCollision() {
             if (py - BUBBLE_RADIUS <= ceilingOffsetY) return true;
             
@@ -402,10 +607,7 @@
                     if (grid[r][c] !== null) {
                         const coords = getBubbleCoords(r, c);
                         const dist = Math.hypot(px - coords.x, py - coords.y);
-                        // 自然に吸い込まれるようなマージン
-                        if (dist <= BUBBLE_RADIUS * 1.8) {
-                            return true;
-                        }
+                        if (dist <= BUBBLE_RADIUS * 1.8) return true;
                     }
                 }
             }
@@ -413,7 +615,6 @@
         }
 
         function snapBubble() {
-            // 最も近いセル情報を走査
             let targetRow = -1;
             let targetCol = -1;
             let minDistance = Infinity;
@@ -431,11 +632,8 @@
                 }
             }
 
-            // もし最接近セルが既に埋まっていた場合、空いている隣接セルからもっとも近い場所を選択
             if (grid[targetRow][targetCol] !== null) {
-                let bestRow = -1;
-                let bestCol = -1;
-                let bestDist = Infinity;
+                let bestRow = -1, bestCol = -1, bestDist = Infinity;
                 const neighbors = getNeighbors(targetRow, targetCol);
                 
                 for (const n of neighbors) {
@@ -454,7 +652,6 @@
                     targetRow = bestRow;
                     targetCol = bestCol;
                 } else {
-                    // フォールバック: 全体から空きを走査
                     let fallbackRow = -1, fallbackCol = -1, fallbackDist = Infinity;
                     for (let r = 0; r < NUM_ROWS; r++) {
                         const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
@@ -481,7 +678,6 @@
             return { row: targetRow, col: targetCol };
         }
 
-        // --- マッチ＆ドロップ処理 ---
         function findMatches(startRow, startCol, color) {
             const matches = [];
             const queue = [{ r: startRow, c: startCol }];
@@ -513,7 +709,6 @@
             });
             const queue = [];
 
-            // 最上段に接続されているバブルから探索を開始
             for (let c = 0; c < NUM_COLS_EVEN; c++) {
                 if (grid[0][c] !== null) {
                     visited[0][c] = true;
@@ -545,16 +740,13 @@
             return dropped;
         }
 
-        // --- デッドライン到達確認 ---
         function checkGameOver() {
             for (let r = 0; r < NUM_ROWS; r++) {
                 const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
                 for (let c = 0; c < cols; c++) {
                     if (grid[r][c] !== null) {
                         const coords = getBubbleCoords(r, c);
-                        if (coords.y + BUBBLE_RADIUS >= LIMIT_Y) {
-                            return true;
-                        }
+                        if (coords.y + BUBBLE_RADIUS >= LIMIT_Y) return true;
                     }
                 }
             }
@@ -564,18 +756,20 @@
         function triggerGameOver() {
             playSound('lose');
             gameActive = false;
-            shareBtn.classList.remove('hidden');
-            showOverlay('GAME OVER', `ラインを越えてしまいました！\n到達レベル: ${currentLevel}\n最終スコア: ${score}`, 'RETRY');
+            overlayState = 'gameover';
+            updateOverlayText();
+            showOverlay();
         }
 
         function triggerLevelClear() {
             playSound('win');
             gameActive = false;
+            overlayState = 'clear';
             currentLevel++;
-            showOverlay('STAGE CLEAR!', `レベル ${currentLevel - 1} をクリア！\n現在のスコア: ${score}`, 'NEXT STAGE');
+            updateOverlayText();
+            showOverlay();
         }
 
-        // --- バブル打ち出しアクション ---
         function fireBubble() {
             if (isShooting || !gameActive) return;
             playSound('shoot');
@@ -586,7 +780,6 @@
             vy = Math.sin(launcherAngle);
         }
 
-        // --- 照準線の壁反射レイトレーシング ---
         function drawAimingLine() {
             ctx.save();
             ctx.beginPath();
@@ -601,7 +794,6 @@
 
             ctx.moveTo(curX, curY);
 
-            // 最大2回バウンドまでトレース
             for (let bounce = 0; bounce < 2; bounce++) {
                 let tWall = Infinity;
                 if (curVx < 0) {
@@ -610,7 +802,6 @@
                     tWall = (CANVAS_WIDTH - BUBBLE_RADIUS - curX) / curVx;
                 }
 
-                // 天井(または天井境界)までの距離
                 const tCeiling = (ceilingOffsetY + BUBBLE_RADIUS - curY) / curVy;
                 const t = Math.min(tWall, tCeiling);
 
@@ -619,8 +810,8 @@
                     curY += curVy * t;
                     ctx.lineTo(curX, curY);
 
-                    if (t === tCeiling) break; // 天井に達したら終了
-                    curVx = -curVx; // 左右壁反射
+                    if (t === tCeiling) break;
+                    curVx = -curVx;
                 } else {
                     ctx.lineTo(curX + curVx * 150, curY + curVy * 150);
                     break;
@@ -631,21 +822,20 @@
             ctx.restore();
         }
 
-        // --- 更新ロジック ---
         function update() {
             if (!gameActive) return;
 
-            // 1. 落下演出のアニメ更新
+            // 1. Drop animation
             for (let i = fallingBubbles.length - 1; i >= 0; i--) {
                 const fb = fallingBubbles[i];
                 fb.y += fb.vy;
-                fb.vy += 0.4; // 重力加速度
+                fb.vy += 0.4;
                 if (fb.y > CANVAS_HEIGHT + BUBBLE_RADIUS) {
                     fallingBubbles.splice(i, 1);
                 }
             }
 
-            // 2. 火花パーティクル更新
+            // 2. Particle decay
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx;
@@ -656,7 +846,7 @@
                 }
             }
 
-            // 3. キーボード方向回転
+            // 3. Aim rotation keys
             const rotSpeed = 0.04;
             if (keys['ArrowLeft'] || keys['Left'] || keys['a']) {
                 launcherAngle -= rotSpeed;
@@ -667,7 +857,7 @@
                 if (launcherAngle > MAX_ANGLE) launcherAngle = MAX_ANGLE;
             }
 
-            // 4. バブル推進処理
+            // 4. Moving fired bubble
             if (isShooting) {
                 const speed = 12;
                 const steps = 4;
@@ -678,7 +868,6 @@
                     px += (vx * speed) / steps;
                     py += (vy * speed) / steps;
 
-                    // 壁反射
                     if (px - BUBBLE_RADIUS < 0) {
                         px = BUBBLE_RADIUS;
                         vx = -vx;
@@ -708,7 +897,6 @@
                             score += 10;
                         });
 
-                        // 浮遊バブルの落下
                         const dropped = dropFloating();
                         if (dropped.length > 0) {
                             playSound('drop');
@@ -720,12 +908,11 @@
                                     vy: 1.5,
                                     color: item.color
                                 });
-                                score += 20; // 落下の方が高得点
+                                score += 20;
                             });
                         }
                     }
 
-                    // 射出回数カウント
                     shotsLeft--;
                     if (shotsLeft <= 0) {
                         playSound('ceiling');
@@ -745,7 +932,6 @@
             }
         }
 
-        // --- 描画ロジック ---
         function drawBubble(x, y, colorCode) {
             ctx.save();
             ctx.beginPath();
@@ -765,7 +951,6 @@
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            // 白いハイライト
             ctx.beginPath();
             ctx.arc(x - BUBBLE_RADIUS * 0.38, y - BUBBLE_RADIUS * 0.38, BUBBLE_RADIUS * 0.22, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
@@ -780,11 +965,9 @@
         }
 
         function draw() {
-            // 背景
             ctx.fillStyle = '#020617';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // グリッド線
             ctx.strokeStyle = '#0f172a';
             ctx.lineWidth = 1;
             const size = 18;
@@ -795,7 +978,6 @@
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke();
             }
 
-            // 警告限界ライン
             ctx.beginPath();
             ctx.setLineDash([5, 5]);
             ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
@@ -809,7 +991,6 @@
             ctx.font = 'bold 9px monospace';
             ctx.fillText('DANGER LIMIT LINE', 10, LIMIT_Y - 5);
 
-            // 天井押し出しビジュアル
             if (ceilingOffsetY > 0) {
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
                 ctx.fillRect(0, 0, CANVAS_WIDTH, ceilingOffsetY);
@@ -821,12 +1002,10 @@
                 ctx.stroke();
             }
 
-            // レーザー照準線
             if (!isShooting && gameActive) {
                 drawAimingLine();
             }
 
-            // 固定バブル
             for (let r = 0; r < NUM_ROWS; r++) {
                 const cols = (r % 2 === 0) ? NUM_COLS_EVEN : NUM_COLS_ODD;
                 for (let c = 0; c < cols; c++) {
@@ -837,12 +1016,10 @@
                 }
             }
 
-            // 落下演出バブル
             fallingBubbles.forEach(fb => {
                 drawBubble(fb.x, fb.y, fb.color);
             });
 
-            // 火花エフェクト
             particles.forEach(p => {
                 ctx.save();
                 ctx.globalAlpha = p.alpha;
@@ -853,12 +1030,10 @@
                 ctx.restore();
             });
 
-            // 推進中のバブル
             if (isShooting) {
                 drawBubble(px, py, currentBubbleColor);
             }
 
-            // 砲台ベース
             ctx.save();
             ctx.beginPath();
             ctx.arc(LAUNCHER_X, LAUNCHER_Y, 20, 0, Math.PI, true);
@@ -869,7 +1044,6 @@
             ctx.stroke();
             ctx.restore();
 
-            // 砲台の筒部分
             ctx.save();
             ctx.translate(LAUNCHER_X, LAUNCHER_Y);
             ctx.rotate(launcherAngle);
@@ -890,12 +1064,10 @@
             ctx.fill();
             ctx.restore();
 
-            // 充填中のバブル
             if (currentBubbleColor && gameActive) {
                 drawBubble(LAUNCHER_X, LAUNCHER_Y, currentBubbleColor);
             }
 
-            // ネクストバブル
             if (nextBubbleColor && gameActive) {
                 ctx.fillStyle = '#64748b';
                 ctx.font = 'bold 8px sans-serif';
@@ -905,7 +1077,6 @@
             }
         }
 
-        // --- ループ管理 ---
         function loop() {
             update();
             draw();
@@ -914,11 +1085,34 @@
             }
         }
 
-        // --- UI表示制御 ---
-        function showOverlay(title, desc, btnText) {
-            overlayTitle.textContent = title;
-            overlayDesc.innerHTML = desc.replace(/\n/g, '<br>');
-            startBtn.textContent = btnText;
+        // --- Overlay Text Generator ---
+        function updateOverlayText() {
+            const t = TRANSLATIONS[currentLang];
+            const overlayTitleEl = document.getElementById('overlay-title');
+            const overlayDescEl = document.getElementById('overlay-desc');
+            const startBtnEl = document.getElementById('start-btn');
+            const shareBtnEl = document.getElementById('share-btn');
+            
+            if (overlayState === 'start') {
+                overlayTitleEl.textContent = t.title;
+                overlayDescEl.textContent = t.startDesc;
+                startBtnEl.textContent = t.gameStart;
+                shareBtnEl.classList.add('hidden');
+            } else if (overlayState === 'gameover') {
+                overlayTitleEl.textContent = t.gameOverTitle;
+                overlayDescEl.innerHTML = t.gameOverDesc.replace('{level}', currentLevel).replace('{score}', score).replace(/\n/g, '<br>');
+                startBtnEl.textContent = t.retry;
+                shareBtnEl.textContent = t.share;
+                shareBtnEl.classList.remove('hidden');
+            } else if (overlayState === 'clear') {
+                overlayTitleEl.textContent = t.stageClearTitle;
+                overlayDescEl.innerHTML = t.stageClearDesc.replace('{level}', currentLevel - 1).replace(/\n/g, '<br>');
+                startBtnEl.textContent = t.nextStage;
+                shareBtnEl.classList.add('hidden');
+            }
+        }
+
+        function showOverlay() {
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
         }
@@ -928,10 +1122,10 @@
             overlay.classList.add('hidden');
         }
 
-        // --- イベント群 ---
+        // --- Event Listeners ---
         startBtn.addEventListener('click', () => {
             hideOverlay();
-            if (startBtn.textContent === 'RETRY') {
+            if (overlayState === 'gameover') {
                 score = 0;
                 currentLevel = 1;
             }
@@ -939,24 +1133,25 @@
             requestAnimationFrame(loop);
         });
 
-        // 𝕏 でのスコアシェア
+        // 𝕏 Share Button
         shareBtn.addEventListener('click', () => {
-            const text = `Puzzle-Bobbleでスコア【${score}】を達成しました！ (Level ${currentLevel}) 🔵🔴🟢🟡\nあなたもハイスコアに挑戦してみよう！`;
+            const text = currentLang === 'en' 
+                ? `I achieved a score of [${score}] in Puzzle Bobble! (Level ${currentLevel - 1}) 🔵🔴🟢🟡\nCan you beat my high score?`
+                : `Puzzle-Bobbleでスコア【${score}】を達成しました！ (レベル ${currentLevel - 1}) 🔵🔴🟢🟡\nあなたもハイスコアに挑戦してみよう！`;
             const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
             window.open(shareUrl, '_blank');
         });
 
-        // キー入力
+        // Controls
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
             if (e.key === ' ' || e.key === 'Spacebar') {
-                e.preventDefault(); // 画面全体のスクロールを防ぐ
+                e.preventDefault();
                 fireBubble();
             }
         });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-        // マウスによる直感的なエイム操作
         canvas.addEventListener('mousemove', (e) => {
             if (!gameActive) return;
             const rect = canvas.getBoundingClientRect();
@@ -975,7 +1170,6 @@
             if (gameActive) fireBubble();
         });
 
-        // タッチ操作対応
         canvas.addEventListener('touchmove', (e) => {
             if (!gameActive) return;
             e.preventDefault();
@@ -997,6 +1191,9 @@
             e.preventDefault();
             fireBubble();
         }, { passive: false });
+
+        // --- Init Game ---
+        applyLanguage();
     </script>
 </body>
 </html>
